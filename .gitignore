@@ -1,0 +1,22 @@
+*.pyc
+db.sqlite3
+__pycache__/
+
+# coverage result
+.coverage
+/coverage/
+
+# pycharm
+.idea
+
+# data
+*.dump
+
+# General
+.DS_Store
+/venv/
+/env/
+/.env/
+/output/
+/cache/
+/ignore/
