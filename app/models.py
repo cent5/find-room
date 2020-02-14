@@ -8,6 +8,8 @@ from app import db
 from app.utils import DateTimeValidator
 from app.utils import FloatValidator
 from app.utils import IntegerValidator
+from app.utils import RoomType
+from app.utils import RoomTypeValidator
 from app.utils import calculate_distance
 
 
@@ -24,7 +26,7 @@ class Listing(db.Model):
     neighbourhood = db.Column(db.String)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
-    room_type = db.Column(db.String)
+    room_type = db.Column(db.Enum(RoomType))
     price = db.Column(db.Float)  # USD
     minimum_nights = db.Column(db.Integer)
     number_of_reviews = db.Column(db.Integer)
@@ -39,7 +41,9 @@ class Listing(db.Model):
         for column in Listing.__table__.columns:
             if column.name in ('id', 'created_at'):
                 continue
-            if isinstance(column.type, db.String):
+            if column.name == 'room_type':
+                proto[column.name] = RoomTypeValidator(kwargs[column.name]).validated
+            elif isinstance(column.type, db.String):
                 proto[column.name] = kwargs[column.name]
             elif isinstance(column.type, db.Integer):
                 proto[column.name] = IntegerValidator(kwargs[column.name]).validated

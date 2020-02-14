@@ -5,6 +5,7 @@ class BaseConfig:
     # SQLAlchemy (http://pythonhosted.org/Flask-SQLAlchemy/)
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/roomapi.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 class DevConfig(BaseConfig):

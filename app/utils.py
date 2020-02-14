@@ -1,3 +1,4 @@
+import enum
 from datetime import datetime
 from math import atan2
 from math import cos
@@ -8,6 +9,18 @@ from math import sqrt
 from flask import jsonify
 
 SEPARATOR = ','
+
+# approximate radius of earth in km
+R = 6373.0
+
+def calculate_distance(latA, lonA, latB, lonB):
+    latA, lonA, latB, lonB = map(radians, [latA, lonA, latB, lonB])
+    lat_delta = latB - latA
+    lon_delta = lonB - lonA
+    a = sin(lat_delta / 2) ** 2 + cos(latA) * cos(latB) * sin(lon_delta / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    distance = R * c
+    return distance
 
 
 class BaseValidator:
@@ -42,6 +55,30 @@ class NonBlankStringValidator(BaseValidator):
         self._x = str(x)
 
 
+class RoomType(enum.Enum):
+    default = 'default'
+    unknown = 'unknown'
+    entire = 'entire'
+    private = 'private'
+    shared = 'shared'
+
+    @staticmethod
+    def from_str(room_type):
+        reformatted = room_type.lower().replace(' ', '')
+        if reformatted == 'privateroom':
+            return RoomType.private
+        elif reformatted == 'sharedroom':
+            return RoomType.shared
+        elif reformatted == 'entirehome/apt':
+            return RoomType.entire
+        else:
+            raise ValueError(f"Unrecognized room type: {room_type}")
+
+class RoomTypeValidator(BaseValidator):
+    def __init__(self, x):
+        self._x = RoomType.from_str(x)
+
+
 def json_error(error_msg):
     return jsonify({'status': 'error',
                     'message': error_msg})
@@ -73,18 +110,3 @@ def read_csv(lines):
         else:
             failure_cnt += 1
     return keys, results, failure_cnt
-
-
-# approximate radius of earth in km
-R = 6373.0
-
-
-def calculate_distance(latA, lonA, latB, lonB):
-    latA, lonA, latB, lonB = map(radians, [latA, lonA, latB, lonB])
-    lat_delta = latB - latA
-    lon_delta = lonB - lonA
-    a = sin(lat_delta / 2) ** 2 + cos(latA) * cos(latB) * sin(lon_delta / 2) ** 2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    distance = R * c
-    return distance
-
