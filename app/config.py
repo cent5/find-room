@@ -9,4 +9,4 @@ class BaseConfig:
 
 class DevConfig(BaseConfig):
     DEBUG = True
-    SQLALCHEMY_ECHO = True
+    SQLALCHEMY_ECHO = False

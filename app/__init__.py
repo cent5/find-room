@@ -18,7 +18,9 @@ def create_app():
     migrate.init_app(app, db)
 
     from app.views import RoomSearchApi
-    app.add_url_rule('/b', methods=['GET'], view_func=RoomSearchApi.as_view('roomsearch'))
+    from app.views import UploadListingData
+    app.add_url_rule('/searchRoom', methods=['GET'], view_func=RoomSearchApi.as_view('searchRoom'))
+    app.add_url_rule('/uploadData', methods=['GET', 'POST'], view_func=UploadListingData.as_view('uploadData'))
 
     return app
 
