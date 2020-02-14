@@ -22,8 +22,14 @@ class RoomSearchApi(MethodView):
         except ValueError:
             return jsonify('Invalid parameter(s) format')
 
-        listings = models.get_listings(limit=10)
-        return jsonify({'status': 'ok', 'results': [x.json() for x in listings]})
+        results = models.filter_listings(latitude, longitude, distance)
+        return jsonify({'status': 'ok', 'results': results})
+
+
+class RoomListApi(MethodView):
+    def get(self):
+        return jsonify({'status': 'ok',
+                        'results': [x.to_json_primitives() for x in models.get_listings(limit=100)]})
 
 
 class UploadListingData(MethodView):

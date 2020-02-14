@@ -1,10 +1,14 @@
 import json
 import logging
+from math import cos
+
+from sqlalchemy import func
 
 from app import db
 from app.utils import DateTimeValidator
 from app.utils import FloatValidator
 from app.utils import IntegerValidator
+from app.utils import calculate_distance
 
 
 class Listing(db.Model):
@@ -61,10 +65,6 @@ class Listing(db.Model):
         return json.dumps(self.to_json_primitives())
 
 
-def get_listings(limit=10):
-    return Listing.query.limit(limit).all()
-
-
 def add_listings(keys, rows):
     listings = []
     failure_cnt = 0
@@ -81,3 +81,26 @@ def add_listings(keys, rows):
     db.session.add_all(listings)
     db.session.commit()
     return len(listings), failure_cnt
+
+
+def get_listings(limit=10):
+    return Listing.query.limit(limit).all()
+
+
+def filter_listings(latitude, longitude, distance):
+    # todo: convert distance to km if needed
+    lat_threshold = distance / 111.111
+    lon_threshold = abs(distance / 111.111 / cos(latitude))
+    listings = Listing.query.filter(
+        func.abs(Listing.latitude - latitude) <= lat_threshold,
+        func.abs(Listing.longitude - longitude) <= lon_threshold).limit(10).all()
+    results = []
+    for listing in listings:
+        calculated_distance = calculate_distance(
+            listing.latitude, listing.longitude, latitude, longitude)
+        if calculated_distance > distance:
+            continue
+        result_item = listing.to_json_primitives()
+        result_item['distance'] = calculated_distance
+        results.append(result_item)
+    return results

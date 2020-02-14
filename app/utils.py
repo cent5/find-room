@@ -1,4 +1,9 @@
 from datetime import datetime
+from math import atan2
+from math import cos
+from math import radians
+from math import sin
+from math import sqrt
 
 from flask import jsonify
 
@@ -68,3 +73,18 @@ def read_csv(lines):
         else:
             failure_cnt += 1
     return keys, results, failure_cnt
+
+
+# approximate radius of earth in km
+R = 6373.0
+
+
+def calculate_distance(latA, lonA, latB, lonB):
+    latA, lonA, latB, lonB = map(radians, [latA, lonA, latB, lonB])
+    lat_delta = latB - latA
+    lon_delta = lonB - lonA
+    a = sin(lat_delta / 2) ** 2 + cos(latA) * cos(latB) * sin(lon_delta / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    distance = R * c
+    return distance
+
