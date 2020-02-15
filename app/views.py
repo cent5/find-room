@@ -22,8 +22,10 @@ class RoomSearchApi(MethodView):
         except ValueError:
             return jsonify('Invalid parameter(s) format')
 
-        results = models.filter_listings(latitude, longitude, distance)
-        return jsonify({'status': 'ok', 'results': results})
+        query = query.lower()
+        listings_with_distance = models.filter_listings(latitude, longitude, distance)
+        sorted_listings = models.filter_listings_by_query(listings_with_distance, query)
+        return jsonify({'status': 'ok', 'results': sorted_listings})
 
 
 class RoomListApi(MethodView):

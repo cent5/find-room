@@ -1,3 +1,7 @@
+"""
+Utility functions and constants.
+"""
+
 import enum
 from datetime import datetime
 from math import atan2
@@ -10,8 +14,14 @@ from flask import jsonify
 
 SEPARATOR = ','
 
-# approximate radius of earth in km
-R = 6373.0
+# users can specify the serch diameter, but we enforce a minimum value
+MINIMUM_SEARCH_DIAMETER = 1  # km
+
+LISTING_DB_SEARCH_LIMIT = 200  # maximum number of listings when querying DB
+LISTING_SEARCH_LIMIT = 100     # maximum number of listings returning to user
+
+# approximate radius of earth
+R = 6373.0  # km
 
 def calculate_distance(latA, lonA, latB, lonB):
     latA, lonA, latB, lonB = map(radians, [latA, lonA, latB, lonB])
@@ -55,7 +65,7 @@ class NonBlankStringValidator(BaseValidator):
         self._x = str(x)
 
 
-class RoomType(enum.Enum):
+class RoomType(str, enum.Enum):
     default = 'default'
     unknown = 'unknown'
     entire = 'entire'
@@ -67,12 +77,21 @@ class RoomType(enum.Enum):
         reformatted = room_type.lower().replace(' ', '')
         if reformatted == 'privateroom':
             return RoomType.private
-        elif reformatted == 'sharedroom':
+        if reformatted == 'sharedroom':
             return RoomType.shared
-        elif reformatted == 'entirehome/apt':
+        if reformatted == 'entirehome/apt':
             return RoomType.entire
-        else:
-            raise ValueError(f"Unrecognized room type: {room_type}")
+        raise ValueError(f"Unrecognized room type: {room_type}")
+
+    @staticmethod
+    def guess_from_str(query):
+        if 'private' in query:
+            return RoomType.private
+        if 'shared' in query:
+            return RoomType.shared
+        if 'entire' in query:
+            return RoomType.entire
+        return RoomType.unknown
 
 class RoomTypeValidator(BaseValidator):
     def __init__(self, x):

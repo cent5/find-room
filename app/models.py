@@ -8,6 +8,8 @@ from app import db
 from app.utils import DateTimeValidator
 from app.utils import FloatValidator
 from app.utils import IntegerValidator
+from app.utils import LISTING_DB_SEARCH_LIMIT
+from app.utils import MINIMUM_SEARCH_DIAMETER
 from app.utils import RoomType
 from app.utils import RoomTypeValidator
 from app.utils import calculate_distance
@@ -58,15 +60,15 @@ class Listing(db.Model):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
-    def to_json_primitives(self):
+    def to_dict(self):
         result = {}
         for column in Listing.__table__.columns:
-            result[column.name] = str(getattr(self, column.name))
+            result[column.name] = getattr(self, column.name)
         # result["__type"] = self.__class__.__name__
         return result
 
     def json(self):
-        return json.dumps(self.to_json_primitives())
+        return json.dumps(self.to_dict())
 
 
 def add_listings(keys, rows):
@@ -92,19 +94,53 @@ def get_listings(limit=10):
 
 
 def filter_listings(latitude, longitude, distance):
-    # todo: convert distance to km if needed
+    # todo: figure if distance is in the correct units (km); if not, convert
+    distance = min(MINIMUM_SEARCH_DIAMETER, distance)
+    # approximate the max and min lat/lon giving the center point of search
     lat_threshold = distance / 111.111
     lon_threshold = abs(distance / 111.111 / cos(latitude))
     listings = Listing.query.filter(
         func.abs(Listing.latitude - latitude) <= lat_threshold,
-        func.abs(Listing.longitude - longitude) <= lon_threshold).limit(10).all()
+        func.abs(Listing.longitude - longitude) <= lon_threshold).limit(LISTING_DB_SEARCH_LIMIT).all()
     results = []
     for listing in listings:
         calculated_distance = calculate_distance(
             listing.latitude, listing.longitude, latitude, longitude)
         if calculated_distance > distance:
             continue
-        result_item = listing.to_json_primitives()
+        result_item = listing.to_dict()
         result_item['distance'] = calculated_distance
         results.append(result_item)
     return results
+
+
+def calculate_score(listing, query):
+    query = query.strip().lower()
+    score = 0
+    guessed_room_type = RoomType.guess_from_str(query)
+    if guessed_room_type != RoomType.unknown and listing['room_type'] == guessed_room_type:
+        score += 2
+    if listing['neighbourhood_group'].lower() in query:
+        score += 1
+    if listing['neighbourhood'].lower() in query:
+        score += 1
+    for token in query.split(' '):
+        if token in listing['host_name'].lower():
+            score += 1
+        if token in listing['name'].lower():
+            score += 1
+    return score
+
+
+def filter_listings_by_query(listings, query):
+    """Loosely match the input query against our listings.
+
+    Aim to be as useful to the user as possible.
+    """
+    results = []
+    for listing in listings:
+        item = listing
+        item['match_score'] = calculate_score(listing, query)
+        results.append(item)
+    return sorted(results, key=lambda x: x['match_score'], reverse=True)
+
