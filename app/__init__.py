@@ -19,10 +19,13 @@ def create_app():
 
     from app.views import RoomSearchApi
     from app.views import UploadListingData
-    from app.views import RoomListApi
-    app.add_url_rule('/searchRoom', methods=['GET'], view_func=RoomSearchApi.as_view('searchRoom'))
-    app.add_url_rule('/uploadData', methods=['GET', 'POST'], view_func=UploadListingData.as_view('uploadData'))
-    app.add_url_rule('/listRoom', methods=['GET'], view_func=RoomListApi.as_view('listRoom'))
+    from app.views import DemoPage
+    app.add_url_rule('/searchRoom', methods=['GET'],
+                     view_func=RoomSearchApi.as_view('searchRoom'))
+    app.add_url_rule('/uploadData', methods=['GET', 'POST'],
+                     view_func=UploadListingData.as_view('uploadData'))
+    app.add_url_rule('/demo', methods=['GET'],
+                     view_func=DemoPage.as_view('demo'))
 
     return app
 

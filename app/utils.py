@@ -3,6 +3,7 @@ Utility functions and constants.
 """
 
 import enum
+import logging
 from datetime import datetime
 from math import atan2
 from math import cos
@@ -13,6 +14,7 @@ from math import sqrt
 from flask import jsonify
 
 SEPARATOR = ','
+WEIRD_COMMA = '，'
 
 # users can specify the serch diameter, but we enforce a minimum value
 MINIMUM_SEARCH_DIAMETER = 1  # km
@@ -43,18 +45,21 @@ class IntegerValidator(BaseValidator):
     def __init__(self, x):
         self._x = None
         if x:
+            x = x.strip('\x00')
             self._x = int(x)
 
 class FloatValidator(BaseValidator):
     def __init__(self, x):
         self._x = None
         if x:
+            x = x.strip('\x00')
             self._x = float(x)
 
 class DateTimeValidator(BaseValidator):
     def __init__(self, x):
         self._x = None
         if x:
+            x = x.strip('\x00')
             self._x = datetime.strptime(x[:10], '%Y-%m-%d')
 
 class NonBlankStringValidator(BaseValidator):
@@ -108,9 +113,22 @@ def read_csv(lines):
     keys = list(map(lambda x: x.lower(), unicoded_lines[0].split(SEPARATOR)))
     results = []
     failure_cnt = 0
-    for irow, row in enumerate(unicoded_lines[1:]):
+    incomplete_row = ''
+    for row in unicoded_lines[1:]:
         values = []
+        if row.startswith('"') and row.endswith('"'):
+            row = row[1:-1]
+        row = row.replace(WEIRD_COMMA, SEPARATOR)
         tokens = row.strip().split(SEPARATOR)
+        try:
+            int(tokens[0])
+            if incomplete_row:
+                logging.error(f'Cannot import listing [{row}] {len(keys)}!={len(values)}')
+                failure_cnt += 1
+                incomplete_row = ''
+        except ValueError:
+            row = incomplete_row + row
+            tokens = row.split(SEPARATOR)
         i = 0
         grouping_cnt = 0
         while i < len(tokens):
@@ -126,6 +144,10 @@ def read_csv(lines):
             i += 1
         if len(keys) == len(values):
             results.append(values)
+            incomplete_row = ''
         else:
-            failure_cnt += 1
+            if incomplete_row:
+                logging.error(f'Cannot import listing [{row}] {len(keys)}!={len(values)}')
+                failure_cnt += 1
+            incomplete_row = row
     return keys, results, failure_cnt

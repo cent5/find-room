@@ -18,7 +18,7 @@ from app.utils import calculate_distance
 class Listing(db.Model):
     __tablename__ = 'listing'
     id = db.Column(db.Integer, primary_key=True)
-    # created_at = db.Column(DateTime)
+    # created_at = db.Column(db.DateTime, server_default=func.sysdate())
     # imported_src = db.Column(db.String)  # notes about source, e.g. filename
     imported_id = db.Column(db.Integer)
     name = db.Column(db.String)
@@ -54,7 +54,8 @@ class Listing(db.Model):
             elif isinstance(column.type, db.DateTime):
                 proto[column.name] = DateTimeValidator(kwargs[column.name]).validated
             else:
-                assert False
+                logging.error(f'Listing: no handler for column {column.name}')
+                # assert False
         return cls(**proto)
 
     def __init__(self, **kwargs):
@@ -137,10 +138,7 @@ def filter_listings_by_query(listings, query):
 
     Aim to be as useful to the user as possible.
     """
-    results = []
     for listing in listings:
-        item = listing
-        item['match_score'] = calculate_score(listing, query)
-        results.append(item)
-    return sorted(results, key=lambda x: x['match_score'], reverse=True)
+        listing.update({'match_score': calculate_score(listing, query)})
+    return sorted(listings, key=lambda x: x['match_score'], reverse=True)
 
